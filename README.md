@@ -1,6 +1,6 @@
-# SurfaceWatch — Attack Surface Monitor for SMBs
+# SurfaceWatch — Attack Surface Mapper
 
-**Find out what a criminal can see of your business — explained in plain English, not security jargon.**
+**Find out what a restricted user can see of your business — explained in plain English, not security jargon.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
