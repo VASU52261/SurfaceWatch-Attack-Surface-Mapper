@@ -1,0 +1,61 @@
+# SurfaceWatch - Attack Surface Monitor for SMBs
+# -------------------------------------------
+# Start everything:
+#
+#   cp .env.example .env      # then fill in whatever you want to use
+#   docker compose up -d
+#
+# Then open http://localhost:5000
+#
+# Nothing here costs money: no paid images, no cloud services, no metered APIs.
+
+services:
+  surfacewatch:
+    build:
+      context: .
+      # Set INCLUDE_BROWSER to false for a much smaller image, at the cost of
+      # website screenshots.
+      args:
+        INCLUDE_BROWSER: "true"
+
+    image: surfacewatch:latest
+    container_name: surfacewatch
+
+    ports:
+      - "5000:5000"
+
+    # API keys and SMTP settings. Everything in here is optional - SurfaceWatch
+    # runs without any of it, just with fewer features.
+    env_file:
+      - .env
+
+    environment:
+      # Domains monitored automatically on start, comma separated.
+      # Example: SURFACEWATCH_TARGETS=acme.com,acme.co.uk
+      SURFACEWATCH_TARGETS: "${SURFACEWATCH_TARGETS:-}"
+      TZ: "${TZ:-UTC}"
+
+    volumes:
+      # Scan history: this is what makes "what changed since yesterday?"
+      # possible, so it must outlive the container.
+      - ./scans:/app/scans
+      # Website screenshots shown in reports and the dashboard.
+      - ./static/screenshots:/app/static/screenshots
+      # The app database (accounts, community posts).
+      - ./instance:/app/instance
+
+    restart: unless-stopped
+
+    # Nmap needs raw sockets for its faster scan types. Without this it still
+    # works, falling back to slower ordinary connections.
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:5000/').status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

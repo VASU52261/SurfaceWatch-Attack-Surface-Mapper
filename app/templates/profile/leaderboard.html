@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard — SurfaceWatch{% endblock %}
+{% block content %}
+<div class="mt-8">
+  <h1 class="text-xl font-bold mb-6">Leaderboard</h1>
+  <div class="card rounded-xl overflow-hidden">
+    {% for user in users %}
+    <a href="{{ url_for('profile.view', username=user.username) }}"
+       class="flex justify-between items-center px-5 py-3 border-b border-[#2a2d3e] last:border-0 hover:bg-[#20232f] transition">
+      <div class="flex items-center gap-3">
+        <span class="text-gray-500 text-sm w-6">{{ loop.index }}</span>
+        <span class="font-medium">{{ user.username }}</span>
+      </div>
+      <span class="text-purple-400 text-sm">{{ user.scan_count }} scans</span>
+    </a>
+    {% else %}
+    <p class="text-gray-500 text-sm p-5">No users yet.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

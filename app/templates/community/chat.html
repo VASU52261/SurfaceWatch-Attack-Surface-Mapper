@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Community — SurfaceWatch{% endblock %}
+{% block content %}
+<div class="mt-8">
+  <h1 class="text-xl font-bold mb-4">Community Chat</h1>
+
+  <div class="card rounded-xl p-4 h-96 overflow-y-auto mb-4" id="chat-box">
+    {% for msg in messages %}
+    <div class="mb-2 text-sm">
+      <span class="text-purple-400 font-medium">{{ msg.sender.username }}</span>
+      <span class="text-gray-600 text-xs">{{ msg.created_at.strftime('%H:%M') }}</span>
+      <div class="text-gray-300">{{ msg.content }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <form id="chat-form" class="flex gap-2">
+    <input type="text" id="chat-input" placeholder="Type a message..." class="flex-1 rounded-md px-3 py-2">
+    <button type="submit" class="btn text-white px-5 py-2 rounded-md">Send</button>
+  </form>
+</div>
+
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+  const socket = io();
+  const chatBox = document.getElementById("chat-box");
+
+  socket.emit("join", { room: "general" });
+
+  socket.on("new_message", (data) => {
+    const div = document.createElement("div");
+    div.className = "mb-2 text-sm";
+    div.innerHTML = `<span class="text-purple-400 font-medium">${data.username}</span>
+      <span class="text-gray-600 text-xs">${data.timestamp}</span>
+      <div class="text-gray-300">${data.content}</div>`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+
+  document.getElementById("chat-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = document.getElementById("chat-input");
+    if (input.value.trim()) {
+      socket.emit("send_message", { room: "general", content: input.value });
+      input.value = "";
+    }
+  });
+</script>
+{% endblock %}

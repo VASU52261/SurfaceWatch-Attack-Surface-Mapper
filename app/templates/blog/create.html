@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Write Post — SurfaceWatch{% endblock %}
+{% block content %}
+<div class="mt-8 card rounded-xl p-8">
+  <h1 class="text-xl font-bold mb-6">Write a Post</h1>
+  <form method="POST">
+    <label class="text-sm text-gray-400">Title</label>
+    <input type="text" name="title" required class="w-full rounded-md px-3 py-2 mb-4 mt-1">
+
+    <label class="text-sm text-gray-400">Tags (comma separated)</label>
+    <input type="text" name="tags" class="w-full rounded-md px-3 py-2 mb-4 mt-1">
+
+    <label class="text-sm text-gray-400">Content</label>
+    <textarea name="content" rows="10" required class="w-full rounded-md px-3 py-2 mb-6 mt-1"></textarea>
+
+    <button type="submit" class="btn text-white px-6 py-2.5 rounded-md font-medium">Publish</button>
+  </form>
+</div>
+{% endblock %}

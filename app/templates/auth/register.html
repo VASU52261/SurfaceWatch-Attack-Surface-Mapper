@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Create Account — SurfaceWatch{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto mt-12">
+  <div class="card rounded-2xl p-8 shadow-xl">
+    <div class="text-center mb-6">
+      <div class="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-500 mx-auto flex items-center justify-center text-2xl mb-2">
+        🛡️
+      </div>
+      <h1 class="text-2xl font-bold">Create SurfaceWatch Account</h1>
+      <p class="text-xs opacity-70 mt-1">Start mapping your attack surface in minutes</p>
+    </div>
+
+    <form method="POST" class="space-y-4">
+      <div>
+        <label class="text-xs font-semibold opacity-80 block mb-1">Username</label>
+        <input type="text" name="username" required placeholder="johndoe" class="w-full rounded-xl px-4 py-2.5 text-sm">
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold opacity-80 block mb-1">Email Address</label>
+        <input type="email" name="email" required placeholder="name@company.com" class="w-full rounded-xl px-4 py-2.5 text-sm">
+      </div>
+
+      <div>
+        <label class="text-xs font-semibold opacity-80 block mb-1">Password</label>
+        <input type="password" name="password" required placeholder="••••••••" class="w-full rounded-xl px-4 py-2.5 text-sm">
+      </div>
+
+      <button type="submit" class="btn-primary w-full text-white py-3 rounded-xl font-semibold text-sm shadow-md transition mt-2">
+        Create Account
+      </button>
+    </form>
+
+    <p class="text-xs opacity-70 mt-6 text-center">
+      Already have an account? <a href="{{ url_for('auth.login') }}" class="text-indigo-400 hover:underline font-semibold">Log in here</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

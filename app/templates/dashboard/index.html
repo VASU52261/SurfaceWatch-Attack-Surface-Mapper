@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SurfaceWatch Attack Surface Mapper{% endblock %}
+{% block content %}
+<div class="mt-6 space-y-8">
+
+  <!-- Run New Scan Section -->
+  <div class="card rounded-2xl p-6 shadow-md">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      </div>
+      <div>
+        <h2 class="font-bold text-lg">Run an Attack Surface Scan</h2>
+        <p class="text-xs opacity-70">Discover subdomains, open ports, services, and CVE risk scores.</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('dashboard.start_scan') }}" class="flex flex-col md:flex-row gap-3 mt-4">
+      <div class="relative flex-1">
+        <input type="text" name="target" placeholder="Enter a domain you own (e.g. example.com)" required
+               class="w-full rounded-xl px-4 py-3 text-sm">
+      </div>
+      <button type="submit" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-500/25 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <span>Launch Scan</span>
+      </button>
+    </form>
+
+    <div class="mt-3 flex items-center gap-2 text-xs opacity-75">
+      <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span><strong>Notice:</strong> Only scan domains you own or have explicit permission to test.</span>
+    </div>
+  </div>
+
+  <!-- Your Scans Section -->
+  <div>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-bold text-lg flex items-center gap-2">
+        <span>Your Attack Surface Scans</span>
+        <span class="text-xs bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/30 font-semibold">{{ scans|length }}</span>
+      </h2>
+      <span class="text-xs opacity-60">Auto-refreshing active scans</span>
+    </div>
+
+    <div class="space-y-3" id="scan-list">
+      {% for scan in scans %}
+      <div id="scan-card-{{ scan.id }}"
+           data-scan-id="{{ scan.id }}"
+           data-status="{{ scan.status }}"
+           class="card rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-lg transition-all duration-200
+             {% if scan.status == 'done' %}border-l-4 border-l-emerald-500
+             {% elif scan.status == 'running' %}border-l-4 border-l-sky-400 animate-pulse
+             {% else %}border-l-4 border-l-rose-500{% endif %}">
+        <a href="{{ url_for('dashboard.view_results', scan_id=scan.id) }}" class="flex items-center gap-3.5 flex-1 group">
+          <div class="w-10 h-10 rounded-xl bg-gray-500/10 border border-gray-500/20 flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:border-emerald-500/50 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 shrink-0 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+          </div>
+          <div>
+            <div class="font-semibold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition flex items-center gap-2">
+              <span>{{ scan.target }}</span>
+            </div>
+            <div class="text-xs opacity-65 mt-0.5">
+              <span>Scanned {{ scan.created_at | to_ist }}</span>
+            </div>
+          </div>
+        </a>
+
+        <div class="flex items-center gap-3 text-xs">
+          <!-- Risk Score Badge -->
+          {% if scan.status == 'done' %}
+          <div title="This score combines CVSS vulnerability severity with graph network position (chokepoints)."
+               class="px-2.5 py-1 rounded-md border font-medium flex items-center gap-1.5 cursor-help
+            {% if scan.risk_score >= 0.7 %}bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30
+            {% elif scan.risk_score >= 0.3 %}bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30
+            {% else %}bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30{% endif %}">
+            <span>Risk Score:</span>
+            <span class="font-bold text-sm">{{ "%.2f"|format(scan.risk_score or 0.0) }}</span>
+          </div>
+          {% endif %}
+
+          <span class="opacity-75 bg-gray-500/10 px-2.5 py-1 rounded-md border border-gray-500/20">
+            {{ scan.node_count or 0 }} nodes / {{ scan.edge_count or 0 }} edges
+          </span>
+
+          <span id="status-pill-{{ scan.id }}" class="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider
+            {% if scan.status == 'done' %}bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30
+            {% elif scan.status == 'running' %}bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30 animate-pulse
+            {% else %}bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30{% endif %}">
+            {{ scan.status }}
+          </span>
+
+          <!-- Delete Scan Action -->
+          <form method="POST" action="{{ url_for('dashboard.delete_scan', scan_id=scan.id) }}" onsubmit="return confirm('Are you sure you want to delete scan for {{ scan.target }}?');" class="inline">
+            <button type="submit" class="p-1.5 rounded-lg opacity-60 hover:opacity-100 hover:text-rose-500 hover:bg-rose-500/10 border border-transparent transition" title="Delete scan">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <!-- Empty State -->
+      <div class="card rounded-2xl p-12 text-center border border-dashed border-gray-500/30 bg-gray-500/5">
+        <div class="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center mb-4 text-2xl">
+          🔍
+        </div>
+        <h3 class="text-lg font-bold mb-1">No Scans Recorded Yet</h3>
+        <p class="text-xs opacity-70 max-w-md mx-auto mb-6">
+          Enter a domain name above to run an automated attack surface enumeration scan and generate graph risk metrics.
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+// Live polling for running scans
+document.addEventListener('DOMContentLoaded', () => {
+  const pollRunningScans = () => {
+    const runningCards = document.querySelectorAll('[data-status="running"]');
+    runningCards.forEach(card => {
+      const scanId = card.getAttribute('data-scan-id');
+      if (!scanId) return;
+
+      fetch(`/dashboard/api/scan/${scanId}/status`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status && data.status !== 'running') {
+            window.location.reload();
+          }
+        })
+        .catch(err => console.error('Polling error:', err));
+    });
+  };
+
+  if (document.querySelectorAll('[data-status="running"]').length > 0) {
+    setInterval(pollRunningScans, 5000);
+  }
+});
+</script>
+{% endblock %}

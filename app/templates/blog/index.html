@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Blog — SurfaceWatch{% endblock %}
+{% block content %}
+<div class="mt-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-xl font-bold">Blog</h1>
+    {% if current_user.is_authenticated %}
+    <a href="{{ url_for('blog.create') }}" class="btn text-white px-4 py-2 rounded-md text-sm">Write Post</a>
+    {% endif %}
+  </div>
+
+  <div class="space-y-4">
+    {% for post in posts %}
+    <a href="{{ url_for('blog.view_post', post_id=post.id) }}" class="card rounded-lg p-5 block hover:border-purple-500 transition">
+      <h2 class="font-semibold mb-1">{{ post.title }}</h2>
+      <p class="text-sm text-gray-500 mb-2">by {{ post.author.username }} · {{ post.created_at.strftime('%b %d, %Y') }}</p>
+      <p class="text-sm text-gray-400">{{ post.content[:150] }}...</p>
+    </a>
+    {% else %}
+    <p class="text-gray-500 text-sm">No posts yet.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

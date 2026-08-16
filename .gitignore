@@ -1,0 +1,44 @@
+# --- Secrets ----------------------------------------------------------------
+# Never commit real API keys or SMTP passwords. .env.example is the template
+# that IS committed.
+.env
+.env.*
+!.env.example
+
+# --- Python ------------------------------------------------------------------
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# --- Scan data (private) -----------------------------------------------------
+# Scan results describe your real infrastructure. Keep them off GitHub.
+scans/
+attack_surface.json
+*_scan.json
+*.scan.json
+
+# --- Generated reports (private) ---------------------------------------------
+*.pdf
+watchdog_report.*
+*_report.html
+*_report.json
+static/screenshots/
+!static/screenshots/.gitkeep
+
+# --- Application data --------------------------------------------------------
+instance/
+*.db
+*.sqlite3
+
+# --- Editors and OS ----------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

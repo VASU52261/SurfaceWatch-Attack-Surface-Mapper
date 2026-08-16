@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}SurfaceWatch — Know Your Attack Surface Before Attackers Do{% endblock %}
+{% block content %}
+<div class="py-16 text-center max-w-3xl mx-auto space-y-6">
+  <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 mb-2">
+    <span>🛡️ Plain English Security Intelligence</span>
+  </div>
+
+  <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
+    Know what you're exposing to the internet — <span class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">before attackers do.</span>
+  </h1>
+
+  <p class="text-base opacity-75 max-w-2xl mx-auto leading-relaxed">
+    SurfaceWatch automatically maps your subdomains, open ports, running services, and CVE vulnerabilities into a directed graph — scoring topological risk and translating complex findings into plain English actions.
+  </p>
+
+  <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('dashboard.index') }}" class="btn-primary text-white px-8 py-3.5 rounded-xl font-bold text-sm shadow-lg hover:shadow-indigo-500/25 transition">
+        Go to Dashboard →
+      </a>
+    {% else %}
+      <a href="{{ url_for('auth.register') }}" class="btn-primary text-white px-8 py-3.5 rounded-xl font-bold text-sm shadow-lg hover:shadow-indigo-500/25 transition">
+        Get Started Free →
+      </a>
+      <a href="{{ url_for('auth.login') }}" class="px-6 py-3.5 rounded-xl text-sm font-semibold border border-gray-700/40 hover:bg-gray-500/10 transition">
+        Sign In
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- Feature Highlights -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-16 text-left">
+    <div class="card rounded-2xl p-6 shadow-md">
+      <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-lg mb-3">🕸️</div>
+      <h3 class="font-bold text-base mb-1">Graph Attack Surface</h3>
+      <p class="text-xs opacity-75">Models relationships between domains, IPs, open ports, services, and CVEs into a directed graph.</p>
+    </div>
+
+    <div class="card rounded-2xl p-6 shadow-md">
+      <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg mb-3">📊</div>
+      <h3 class="font-bold text-base mb-1">Topology Risk Scoring</h3>
+      <p class="text-xs opacity-75">Combines PageRank and Betweenness Centrality with CVSS scores to rank your highest-priority assets.</p>
+    </div>
+
+    <div class="card rounded-2xl p-6 shadow-md">
+      <div class="w-10 h-10 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center font-bold text-lg mb-3">📄</div>
+      <h3 class="font-bold text-base mb-1">Plain English Reports</h3>
+      <p class="text-xs opacity-75">Translates technical vulnerabilities into actionable steps business owners can understand and share.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

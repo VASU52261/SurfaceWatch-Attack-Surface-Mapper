@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile — SurfaceWatch{% endblock %}
+{% block content %}
+<div class="mt-8 card rounded-xl p-8 max-w-md">
+  <h1 class="text-xl font-bold mb-6">Edit Profile</h1>
+  <form method="POST">
+    <label class="text-sm text-gray-400">Bio</label>
+    <textarea name="bio" rows="4" class="w-full rounded-md px-3 py-2 mb-6 mt-1">{{ current_user.bio }}</textarea>
+    <button type="submit" class="btn text-white px-6 py-2.5 rounded-md font-medium">Save</button>
+  </form>
+</div>
+{% endblock %}

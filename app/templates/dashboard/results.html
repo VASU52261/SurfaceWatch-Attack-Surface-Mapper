@@ -1,0 +1,596 @@
+{% extends "base.html" %}
+{% block title %}{{ scan.target }} — Results & Risk Analysis{% endblock %}
+{% block content %}
+<div class="mt-6 space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <a href="{{ url_for('dashboard.index') }}" class="text-xs text-indigo-400 hover:underline flex items-center gap-1 font-medium">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          Back to Dashboard
+        </a>
+      </div>
+      <h1 class="text-2xl md:text-3xl font-extrabold mt-1 flex items-center gap-3">
+        <span>{{ scan.target }}</span>
+        <!-- Outlined Dot Badge -->
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border tracking-wider uppercase
+          {% if scan.status == 'done' %}bg-emerald-500/10 text-emerald-400 border-emerald-500/30
+          {% elif scan.status == 'running' %}bg-amber-500/10 text-amber-400 border-amber-500/30
+          {% else %}bg-rose-500/10 text-rose-400 border-rose-500/30{% endif %}">
+          <span class="w-2 h-2 rounded-full {% if scan.status == 'done' %}bg-emerald-400{% elif scan.status == 'running' %}bg-amber-400 animate-ping{% else %}bg-rose-400{% endif %}"></span>
+          {{ scan.status }}
+        </span>
+      </h1>
+      <p class="text-xs opacity-70 mt-0.5">Scanned on {{ scan.created_at.strftime('%b %d, %Y at %H:%M UTC') }}</p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      {% if scan.status == 'done' %}
+      <a href="{{ url_for('dashboard.download_pdf', scan_id=scan.id) }}"
+         class="btn-primary text-white text-xs px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-lg hover:shadow-indigo-500/25 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span>Download PDF Report</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Stat Metric Cards Grid -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="card rounded-2xl p-4 shadow-md relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold opacity-70">Total Nodes</span>
+        <div class="w-8 h-8 rounded-lg bg-indigo-500/15 text-indigo-400 flex items-center justify-center font-bold text-sm">🕸️</div>
+      </div>
+      <div class="text-3xl font-extrabold text-indigo-400 mt-2">{{ scan.node_count or 0 }}</div>
+      <div class="text-[11px] opacity-60 mt-0.5">Discovered attack assets</div>
+    </div>
+
+    <div class="card rounded-2xl p-4 shadow-md relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold opacity-70">Total Edges</span>
+        <div class="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center font-bold text-sm">🔗</div>
+      </div>
+      <div class="text-3xl font-extrabold text-purple-400 mt-2">{{ scan.edge_count or 0 }}</div>
+      <div class="text-[11px] opacity-60 mt-0.5">Asset interconnections</div>
+    </div>
+
+    <div class="card rounded-2xl p-4 shadow-md relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <span class="text-xs font-semibold opacity-70">Top Risk Score</span>
+          <button type="button" onclick="toggleRiskModal()" class="text-gray-400 hover:text-indigo-400" title="How is this score calculated?">ⓘ</button>
+        </div>
+        <div class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center font-bold text-sm">⚡</div>
+      </div>
+      <div class="text-3xl font-extrabold mt-2
+        {% if (scan.risk_score or 0) >= 0.7 %}text-rose-400
+        {% elif (scan.risk_score or 0) >= 0.3 %}text-amber-400
+        {% else %}text-emerald-400{% endif %}">
+        {{ "%.2f"|format(scan.risk_score or 0.0) }}
+      </div>
+      <div class="text-[11px] opacity-60 mt-0.5">Combined topology + CVSS risk</div>
+    </div>
+
+    <div class="card rounded-2xl p-4 shadow-md relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <span class="text-xs font-semibold opacity-70">Overall Severity</span>
+          <button type="button" onclick="toggleRiskModal()" class="text-gray-400 hover:text-indigo-400" title="Severity Rating Breakdown">ⓘ</button>
+        </div>
+        <div class="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-400 flex items-center justify-center font-bold text-sm">🚨</div>
+      </div>
+      <div class="text-2xl font-extrabold mt-2">
+        {% if report and report.overall_risk %}
+          <span class="{% if report.overall_risk == 'CRITICAL' %}text-rose-400{% elif report.overall_risk == 'HIGH' %}text-orange-400{% elif report.overall_risk == 'MEDIUM' %}text-amber-400{% else %}text-emerald-400{% endif %}">
+            {{ report.overall_risk }}
+          </span>
+        {% else %}
+          <span class="text-emerald-400">LOW</span>
+        {% endif %}
+      </div>
+      <div class="text-[11px] opacity-60 mt-0.5">Automated Business Rating</div>
+    </div>
+  </div>
+
+  <!-- Explainable Risk Modal / Tooltip Drawer -->
+  <div id="risk-info-modal" class="card rounded-2xl p-6 shadow-2xl border border-indigo-500/30 hidden">
+    <div class="flex items-center justify-between pb-3 border-b border-gray-700/40">
+      <h3 class="font-bold text-base flex items-center gap-2">
+        <span>💡 How SurfaceWatch Calculates Risk</span>
+      </h3>
+      <button type="button" onclick="toggleRiskModal()" class="text-gray-400 hover:text-white text-lg font-bold">&times;</button>
+    </div>
+    <div class="text-xs space-y-3 mt-3 opacity-90 leading-relaxed">
+      <p>
+        SurfaceWatch calculates risk by evaluating both <strong>Vulnerability Severity (CVSS)</strong> and <strong>Graph Topology (Network Position)</strong>:
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+        <div class="p-3 rounded-xl bg-gray-500/10 border border-gray-500/20">
+          <div class="font-bold text-indigo-400 mb-1">1. CVSS Vulnerability Score</div>
+          <p>CVSS rates software flaws from 0.0 to 10.0 based on exploitation difficulty and impact:</p>
+          <ul class="list-disc list-inside mt-1.5 space-y-0.5 opacity-80">
+            <li><strong class="text-rose-400">Critical (9.0–10.0)</strong>: Urgent public flaw</li>
+            <li><strong class="text-orange-400">High (7.0–8.9)</strong>: Serious working exploit</li>
+            <li><strong class="text-amber-400">Medium (4.0–6.9)</strong>: Moderate real-world risk</li>
+            <li><strong class="text-emerald-400">Low (0.1–3.9)</strong>: Minor exposure</li>
+          </ul>
+        </div>
+
+        <div class="p-3 rounded-xl bg-gray-500/10 border border-gray-500/20">
+          <div class="font-bold text-purple-400 mb-1">2. Network Topology Position</div>
+          <p>Even an asset with zero CVEs is dangerous if it acts as a central hub or chokepoint:</p>
+          <ul class="list-disc list-inside mt-1.5 space-y-0.5 opacity-80">
+            <li><strong>Chokepoints</strong>: Assets sitting between public internet and internal systems.</li>
+            <li><strong>Trust Hubs</strong>: Nodes that transfer trust across multiple subdomains or services.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="pt-2 text-[11px] opacity-70">
+        Formula: <code>Combined Score = (CVSS Risk + (Betweenness × 5 + PageRank × 5)) / 2</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- D3 Interactive Graph Container -->
+  <div class="card rounded-2xl shadow-xl overflow-hidden relative">
+    <div class="p-4 border-b border-gray-700/40 card-header-theme flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded-full bg-indigo-500"></div>
+        <h2 class="font-bold text-sm">Interactive Attack Surface Graph</h2>
+        <span class="text-xs opacity-60">({{ graph_data.nodes|length }} nodes, {{ graph_data.edges|length }} edges)</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="reset-zoom-btn" class="text-xs px-3 py-1.5 rounded-lg bg-gray-500/10 hover:bg-gray-500/20 border border-gray-500/30 transition">
+          Reset View
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Chips Legend Bar -->
+    <div class="px-4 py-2.5 border-b border-gray-700/30 flex flex-wrap gap-2 text-xs">
+      <span class="text-xs opacity-60 flex items-center mr-1">Filter Type:</span>
+      <button class="filter-chip px-2.5 py-1 rounded-full border border-purple-500/40 bg-purple-500/15 text-purple-300 font-medium active" data-type="all">All Nodes</button>
+      <button class="filter-chip px-2.5 py-1 rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-400 font-medium" data-type="domain">Domain</button>
+      <button class="filter-chip px-2.5 py-1 rounded-full border border-blue-500/40 bg-blue-500/10 text-blue-400 font-medium" data-type="subdomain">Subdomain</button>
+      <button class="filter-chip px-2.5 py-1 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-cyan-400 font-medium" data-type="ip">IP</button>
+      <button class="filter-chip px-2.5 py-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-400 font-medium" data-type="port">Port</button>
+      <button class="filter-chip px-2.5 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-medium" data-type="service">Service</button>
+      <button class="filter-chip px-2.5 py-1 rounded-full border border-pink-500/40 bg-pink-500/10 text-pink-400 font-medium" data-type="technology">Technology</button>
+      <button class="filter-chip px-2.5 py-1 rounded-full border border-rose-500/40 bg-rose-500/10 text-rose-400 font-medium flex items-center gap-1" data-type="cve">
+        <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span> CVE
+      </button>
+    </div>
+
+    <!-- D3 Canvas Area -->
+    <div class="relative w-full h-[540px] bg-theme-graph" id="graph-container">
+      <svg id="d3-svg" class="w-full h-full cursor-grab"></svg>
+
+      <!-- Side Node Details Drawer -->
+      <div id="node-drawer" class="absolute top-4 right-4 w-80 bg-theme-card backdrop-blur border border-gray-700/50 rounded-2xl p-4 shadow-2xl hidden z-20 text-xs space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-gray-700/40">
+          <span class="font-bold text-sm" id="drawer-title">Node Details</span>
+          <button id="close-drawer-btn" class="text-gray-400 hover:text-white font-bold text-base">&times;</button>
+        </div>
+        <div id="drawer-body" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated Risk Explanation Section (Task 6) -->
+  <div class="card rounded-2xl p-5 shadow-lg border border-gray-700/40">
+    <button type="button" onclick="toggleRiskExplainer()" class="w-full flex items-center justify-between text-left">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-sm">📈</div>
+        <div>
+          <h3 class="font-bold text-sm">Understanding Your Scan Risk Score</h3>
+          <p class="text-xs opacity-60">Learn how SurfaceWatch scores threat severity and topological centrality.</p>
+        </div>
+      </div>
+      <span id="risk-explainer-arrow" class="text-xs opacity-70 transform transition-transform duration-200">▼</span>
+    </button>
+
+    <div id="risk-explainer-content" class="hidden mt-4 pt-4 border-t border-gray-700/40 text-xs space-y-3 opacity-90 leading-relaxed">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-center">
+        <div class="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+          <div class="font-bold text-emerald-400 text-sm">Low Risk</div>
+          <div class="text-[11px] opacity-80 mt-0.5">Score: 0.0 – 0.29</div>
+          <div class="text-[10px] opacity-60 mt-1">Normal public services</div>
+        </div>
+        <div class="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10">
+          <div class="font-bold text-amber-400 text-sm">Medium Risk</div>
+          <div class="text-[11px] opacity-80 mt-0.5">Score: 0.30 – 0.59</div>
+          <div class="text-[10px] opacity-60 mt-1">Unencrypted HTTP / Open SSH</div>
+        </div>
+        <div class="p-3 rounded-xl border border-orange-500/30 bg-orange-500/10">
+          <div class="font-bold text-orange-400 text-sm">High Risk</div>
+          <div class="text-[11px] opacity-80 mt-0.5">Score: 0.60 – 0.84</div>
+          <div class="text-[10px] opacity-60 mt-1">Known software CVE flaw</div>
+        </div>
+        <div class="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10">
+          <div class="font-bold text-rose-400 text-sm">Critical Risk</div>
+          <div class="text-[11px] opacity-80 mt-0.5">Score: 0.85 – 1.00</div>
+          <div class="text-[10px] opacity-60 mt-1">Exposed DB / Critical RCE</div>
+        </div>
+      </div>
+      <p class="text-[11px] opacity-70 pt-1">
+        Notice: Assets flagged with high risk scores due to <em>network position</em> (topology chokepoints) indicate structurally sensitive systems that warrant firewall restriction even if no public CVE is active.
+      </p>
+    </div>
+  </div>
+
+  <!-- Plain English Security Findings (Task 5: Severity Sorted & Copy Button) -->
+  {% if report and report.findings %}
+  <div class="card rounded-2xl p-6 shadow-xl space-y-4">
+    <div class="flex items-center justify-between pb-3 border-b border-gray-700/40">
+      <h2 class="font-bold text-lg flex items-center gap-2">
+        <span>🛡️ Plain English Security Findings</span>
+        <span class="text-xs bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full border border-indigo-500/30 font-bold">{{ report.findings|length }}</span>
+      </h2>
+      <span class="text-xs opacity-60">Sorted by Severity (Critical → Low)</span>
+    </div>
+
+    <!-- Severity Sorted Findings -->
+    {% set severity_order = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3} %}
+    {% set sorted_findings = report.findings | sort(attribute='severity') %}
+
+    <div class="space-y-4">
+      {% for finding in sorted_findings %}
+      <div class="rounded-2xl p-5 border shadow-sm space-y-2.5 transition-all hover:shadow-md
+        {% if finding.severity == 'CRITICAL' %}border-l-4 border-l-rose-500 border-rose-900/30 bg-rose-950/10
+        {% elif finding.severity == 'HIGH' %}border-l-4 border-l-orange-500 border-orange-900/30 bg-orange-950/10
+        {% elif finding.severity == 'MEDIUM' %}border-l-4 border-l-amber-500 border-amber-900/30 bg-amber-950/10
+        {% else %}border-l-4 border-l-emerald-500 border-emerald-900/30 bg-emerald-950/10{% endif %}">
+        
+        <div class="flex items-center justify-between gap-2">
+          <span class="px-2.5 py-0.5 rounded text-[11px] font-extrabold uppercase tracking-wider
+            {% if finding.severity == 'CRITICAL' %}bg-rose-500/20 text-rose-300 border border-rose-500/40
+            {% elif finding.severity == 'HIGH' %}bg-orange-500/20 text-orange-300 border border-orange-500/40
+            {% elif finding.severity == 'MEDIUM' %}bg-amber-500/20 text-amber-300 border border-amber-500/40
+            {% else %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/40{% endif %}">
+            {{ finding.severity }}
+          </span>
+
+          <div class="flex items-center gap-2">
+            {% if finding.asset %}
+            <span class="text-xs font-mono opacity-70">{{ finding.asset }}</span>
+            {% endif %}
+            <!-- Copy Finding Button -->
+            <button type="button" onclick="copyFindingText(this, '{{ finding.what_is_exposed|escape }}', '{{ finding.why_it_matters|escape }}', '{{ finding.recommended_action|escape }}')"
+                    class="text-xs px-2.5 py-1 rounded-lg border border-gray-600/40 hover:bg-gray-500/20 opacity-80 hover:opacity-100 transition flex items-center gap-1">
+              <span>📋 Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-sm mb-1.5">{{ finding.what_is_exposed }}</h3>
+          <div class="text-xs opacity-80 leading-relaxed"><strong>Why It Matters:</strong> {{ finding.why_it_matters }}</div>
+          <div class="text-xs opacity-80 leading-relaxed mt-1"><strong>Attacker Abuse:</strong> {{ finding.how_attacker_uses_it }}</div>
+        </div>
+
+        <div class="pt-2.5 border-t border-gray-700/30 text-xs text-indigo-400 font-semibold flex items-start gap-1.5">
+          <span>💡</span>
+          <span><strong>Recommended Action:</strong> {{ finding.recommended_action }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Attack Path Stories -->
+  {% if stories %}
+  <div class="card rounded-2xl p-6 shadow-xl space-y-4">
+    <h2 class="font-bold text-lg flex items-center gap-2 pb-3 border-b border-gray-700/40">
+      <span>🎯 How an Attacker Could Breach You (Attack Paths)</span>
+    </h2>
+
+    <div class="space-y-6">
+      {% for story in stories %}
+      <div class="rounded-2xl p-5 border border-gray-700/40 bg-gray-500/5 space-y-3 shadow-sm">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-sm">Path {{ loop.index }}: {{ story.title }}</h3>
+          <span class="text-xs px-2.5 py-0.5 rounded font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+            Breach Probability: {{ story.breach_probability }}
+          </span>
+        </div>
+
+        <div class="space-y-2">
+          {% for step in story.steps %}
+          <div class="flex items-start gap-3 text-xs">
+            <div class="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold shrink-0 border border-indigo-500/40">
+              {{ step.number }}
+            </div>
+            <div class="pt-0.5 opacity-90 leading-relaxed">{{ step.text }}</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if story.prevention_steps %}
+        <div class="pt-3 border-t border-gray-700/40 text-xs">
+          <div class="font-semibold text-indigo-400 mb-1">Steps to Prevent This Attack:</div>
+          <ul class="list-disc list-inside space-y-1 opacity-80">
+            {% for action in story.prevention_steps %}
+            <li>{{ action }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- D3 Graph JavaScript Logic & Interactivity -->
+<script>
+const rawGraphData = {{ graph_data | tojson | safe }};
+
+function toggleRiskModal() {
+  const modal = document.getElementById('risk-info-modal');
+  if (modal) modal.classList.toggle('hidden');
+}
+
+function toggleRiskExplainer() {
+  const content = document.getElementById('risk-explainer-content');
+  const arrow = document.getElementById('risk-explainer-arrow');
+  if (content && arrow) {
+    content.classList.toggle('hidden');
+    arrow.classList.toggle('rotate-180');
+  }
+}
+
+function copyFindingText(btn, exposed, why, action) {
+  const text = `SECURITY FINDING:\nWhat is Exposed: ${exposed}\nWhy It Matters: ${why}\nRecommended Action: ${action}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<span>✅ Copied!</span>';
+    setTimeout(() => { btn.innerHTML = orig; }, 2000);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!rawGraphData || !rawGraphData.nodes || rawGraphData.nodes.length === 0) {
+    document.getElementById('graph-container').innerHTML = `
+      <div class="flex items-center justify-center h-full opacity-50 text-sm">
+        No graph nodes available to visualize.
+      </div>
+    `;
+    return;
+  }
+
+  const container = document.getElementById('graph-container');
+  const width = container.clientWidth || 900;
+  const height = container.clientHeight || 540;
+
+  const colorMap = {
+    'domain': '#a855f7',
+    'subdomain': '#3b82f6',
+    'ip': '#06b6d4',
+    'port': '#f59e0b',
+    'service': '#10b981',
+    'technology': '#ec4899',
+    'cve': '#ef4444'
+  };
+
+  const svg = d3.select('#d3-svg');
+  svg.selectAll('*').remove();
+
+  // Defs for arrow marker and CVE pulse glow filter
+  const defs = svg.append('defs');
+  defs.append('marker')
+    .attr('id', 'arrow')
+    .attr('viewBox', '0 -5 10 10')
+    .attr('refX', 18)
+    .attr('refY', 0)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path')
+    .attr('d', 'M0,-5L10,0L0,5')
+    .attr('fill', '#475569');
+
+  // SVG drop shadow filter for CVE pulse glow
+  const filter = defs.append('filter')
+    .attr('id', 'cve-glow')
+    .attr('x', '-50%').attr('y', '-50%')
+    .attr('width', '200%').attr('height', '200%');
+  filter.append('feGaussianBlur').attr('stdDeviation', '4').attr('result', 'coloredBlur');
+  const feMerge = filter.append('feMerge');
+  feMerge.append('feMergeNode').attr('in', 'coloredBlur');
+  feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+  const g = svg.append('g');
+
+  // Zoom behavior
+  const zoom = d3.zoom()
+    .scaleExtent([0.2, 4])
+    .on('zoom', (event) => g.attr('transform', event.transform));
+
+  svg.call(zoom);
+
+  document.getElementById('reset-zoom-btn').addEventListener('click', () => {
+    svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity);
+  });
+
+  const nodes = rawGraphData.nodes.map(n => ({ ...n }));
+  const links = rawGraphData.edges.map(e => ({
+    source: e.source,
+    target: e.target,
+    edge_type: e.edge_type
+  }));
+
+  const simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(95))
+    .force('charge', d3.forceManyBody().strength(-240))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(28));
+
+  // Render edges
+  const link = g.append('g')
+    .selectAll('line')
+    .data(links)
+    .enter().append('line')
+    .attr('stroke', document.documentElement.getAttribute('data-theme') === 'light' ? '#cbd5e1' : '#334155')
+    .attr('stroke-width', 1.5)
+    .attr('marker-end', 'url(#arrow)');
+
+  // Render nodes
+  const node = g.append('g')
+    .selectAll('circle')
+    .data(nodes)
+    .enter().append('circle')
+    .attr('r', d => d.node_type === 'domain' ? 14 : d.node_type === 'cve' ? 13 : 9)
+    .attr('fill', d => colorMap[d.node_type] || '#94a3b8')
+    .attr('stroke', d => d.node_type === 'cve' ? '#f87171' : '#1e293b')
+    .attr('stroke-width', d => d.node_type === 'cve' ? 3 : 2)
+    .attr('filter', d => d.node_type === 'cve' ? 'url(#cve-glow)' : null)
+    .attr('class', 'cursor-pointer transition-opacity duration-200')
+    .call(d3.drag()
+      .on('start', dragstarted)
+      .on('drag', dragged)
+      .on('end', dragended));
+
+  // Render node labels
+  const label = g.append('g')
+    .selectAll('text')
+    .data(nodes)
+    .enter().append('text')
+    .text(d => d.label || d.id)
+    .attr('font-size', '10px')
+    .attr('font-weight', '500')
+    .attr('fill', document.documentElement.getAttribute('data-theme') === 'light' ? '#1e293b' : '#cbd5e1')
+    .attr('dx', 15)
+    .attr('dy', 4);
+
+  // Hover highlighting (Task 3)
+  node.on('mouseover', (event, d) => {
+    const connectedNodeIds = new Set();
+    connectedNodeIds.add(d.id);
+
+    links.forEach(l => {
+      if (l.source.id === d.id) connectedNodeIds.add(l.target.id);
+      if (l.target.id === d.id) connectedNodeIds.add(l.source.id);
+    });
+
+    node.transition().duration(200).style('opacity', n => connectedNodeIds.has(n.id) ? 1 : 0.15);
+    label.transition().duration(200).style('opacity', n => connectedNodeIds.has(n.id) ? 1 : 0.15);
+    link.transition().duration(200).style('opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.1);
+  });
+
+  node.on('mouseout', () => {
+    node.transition().duration(200).style('opacity', 1);
+    label.transition().duration(200).style('opacity', 1);
+    link.transition().duration(200).style('opacity', 1);
+  });
+
+  // Click node to open details drawer (Task 3 & 6)
+  node.on('click', (event, d) => {
+    event.stopPropagation();
+    const drawer = document.getElementById('node-drawer');
+    const title = document.getElementById('drawer-title');
+    const body = document.getElementById('drawer-body');
+
+    title.innerText = d.label || d.id;
+
+    let topoTxt = d.risk_score ? (d.risk_score * 0.5).toFixed(3) : "0.000";
+    let cvssTxt = d.meta && d.meta.cvss ? d.meta.cvss : (d.node_type === 'cve' ? (d.risk_score || 0.0) : "0.0");
+    let explainNote = (d.node_type !== 'cve' && (!d.meta || !d.meta.cvss))
+      ? "Flagged primarily for its central network position (topology chokepoint)."
+      : "Identified with published software vulnerability data.";
+
+    let html = `
+      <div><strong class="opacity-70">Type:</strong> <span class="uppercase font-bold" style="color:${colorMap[d.node_type]}">${d.node_type}</span></div>
+      <div><strong class="opacity-70">Node ID:</strong> <span class="font-mono text-[10px] break-all">${d.id}</span></div>
+      <div><strong class="opacity-70">Exposed to Web:</strong> ${d.exposed ? 'Yes' : 'No'}</div>
+      <div class="pt-2 border-t border-gray-700/40">
+        <strong class="opacity-70">Risk Breakdown:</strong>
+        <div class="mt-1 p-2 rounded bg-gray-500/10 border border-gray-500/20 space-y-1">
+          <div>• CVSS Flaw Risk: <strong>${cvssTxt}</strong></div>
+          <div>• Network Centrality Score: <strong>${topoTxt}</strong></div>
+          <div>• Priority: <strong style="color:${colorMap[d.node_type]}">${d.risk_score >= 0.7 ? 'High/Critical' : 'Medium/Low'}</strong></div>
+        </div>
+        <div class="text-[10px] opacity-60 mt-1 italic">${explainNote}</div>
+      </div>
+    `;
+
+    if (d.meta && Object.keys(d.meta).length > 0) {
+      html += `<div class="pt-2 border-t border-gray-700/40"><strong class="opacity-70">Metadata:</strong><pre class="text-[10px] bg-gray-900/60 p-2 rounded mt-1 overflow-x-auto opacity-90">${JSON.stringify(d.meta, null, 2)}</pre></div>`;
+    }
+
+    body.innerHTML = html;
+    drawer.classList.remove('hidden');
+  });
+
+  document.getElementById('close-drawer-btn').addEventListener('click', () => {
+    document.getElementById('node-drawer').classList.add('hidden');
+  });
+
+  // Filter Chips Logic (Task 4)
+  document.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active', 'bg-indigo-500/20'));
+      btn.classList.add('active', 'bg-indigo-500/20');
+
+      const filterType = btn.getAttribute('data-type');
+      if (filterType === 'all') {
+        node.style('display', 'block');
+        label.style('display', 'block');
+        link.style('display', 'block');
+      } else {
+        const visibleIds = new Set(nodes.filter(n => n.node_type === filterType).map(n => n.id));
+        node.style('display', n => visibleIds.has(n.id) ? 'block' : 'none');
+        label.style('display', n => visibleIds.has(n.id) ? 'block' : 'none');
+        link.style('display', l => (visibleIds.has(l.source.id) || visibleIds.has(l.target.id)) ? 'block' : 'none');
+      }
+    });
+  });
+
+  // Theme listener for D3 elements (Task 2)
+  window.addEventListener('themeChanged', (e) => {
+    const theme = e.detail.theme;
+    label.attr('fill', theme === 'light' ? '#1e293b' : '#cbd5e1');
+    link.attr('stroke', theme === 'light' ? '#cbd5e1' : '#334155');
+  });
+
+  simulation.on('tick', () => {
+    link
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+
+    node
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y);
+
+    label
+      .attr('x', d => d.x)
+      .attr('y', d => d.y);
+  });
+
+  function dragstarted(event) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    event.subject.fx = event.subject.x;
+    event.subject.fy = event.subject.y;
+  }
+
+  function dragged(event) {
+    event.subject.fx = event.x;
+    event.subject.fy = event.y;
+  }
+
+  function dragended(event) {
+    if (!event.active) simulation.alphaTarget(0);
+    event.subject.fx = null;
+    event.subject.fy = null;
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,53 @@
+# SurfaceWatch - Attack Surface Monitor for SMBs
+# ------------------------------------------
+# Every dependency below is free and open source. SurfaceWatch has no paid tier,
+# no subscription and no metered API: it costs nothing to run.
+#
+# Install everything:   pip install -r requirements.txt
+
+# --- Core graph engine -----------------------------------------------------
+networkx==3.6.1                # the attack surface graph and its algorithms
+
+# --- Scanners --------------------------------------------------------------
+python-nmap==0.7.1             # port and service discovery (needs the nmap binary)
+requests==2.32.5               # NVD, Shodan and technology detection HTTP calls
+selenium==4.46.0               # headless Chrome screenshots (optional at runtime)
+
+# --- Reporting -------------------------------------------------------------
+reportlab==5.0.0               # PDF report generation
+
+# --- Monitoring ------------------------------------------------------------
+APScheduler==3.11.3            # background scheduled scans
+
+# --- Command line interface -------------------------------------------------
+click==8.3.1                   # the surfacewatch CLI
+rich==15.0.0                   # colours, tables and progress bars in the terminal
+
+# --- Web application and API ------------------------------------------------
+Flask==3.1.3
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Flask-Bcrypt==1.0.1
+Flask-SocketIO==5.6.1
+SQLAlchemy==2.0.49
+bcrypt==5.0.0
+
+# --- Configuration ----------------------------------------------------------
+python-dotenv==1.2.2           # loads API keys and SMTP settings from .env
+
+# ---------------------------------------------------------------------------
+# Not installed by this file, but needed for the full feature set:
+#
+#   nmap      - the port scanner itself. The Docker image installs it for you.
+#               Otherwise: https://nmap.org/download.html
+#   Chromium  - only needed for website screenshots. Everything else works
+#               without it, and SurfaceWatch skips screenshots with a clear message.
+#
+# Optional, free API keys (both have a free tier that is plenty for one small
+# business, and SurfaceWatch works without either):
+#
+#   NVD_API_KEY     - https://nvd.nist.gov/developers/request-an-api-key
+#                     Free. Makes CVE lookups about 10x faster.
+#   SHODAN_API_KEY  - https://account.shodan.io/
+#                     Free tier. Adds passive discovery. Skipped if not set.
+# ---------------------------------------------------------------------------

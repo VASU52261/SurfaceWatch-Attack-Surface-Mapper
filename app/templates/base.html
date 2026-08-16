@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SurfaceWatch — Attack Surface Mapper{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg-body: #0b0d14;
+      --bg-card: #141722;
+      --bg-card-header: #161a29;
+      --bg-input: #1c2030;
+      --bg-nav: #121520;
+      --bg-panel: #0e101a;
+      --border-color: #232738;
+      --border-input: #2d334a;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --text-label: #cbd5e1;
+      --graph-bg: #0c0e17;
+      --graph-link: #334155;
+      --graph-text: #cbd5e1;
+      --accent-emerald: #10b981;
+      --accent-blue: #38bdf8;
+      --accent-coral: #fb7185;
+      --accent-rose: #ef4444;
+    }
+
+    [data-theme="light"] {
+      --bg-body: #ffffff;
+      --bg-card: #f8faf9;
+      --bg-card-header: #f1f5f9;
+      --bg-input: #ffffff;
+      --bg-nav: #ffffff;
+      --bg-panel: #ffffff;
+      --border-color: #e2e8f0;
+      --border-input: #cbd5e1;
+      --text-primary: #18181b;
+      --text-secondary: #64748b;
+      --text-muted: #64748b;
+      --text-label: #334155;
+      --graph-bg: #ffffff;
+      --graph-link: #cbd5e1;
+      --graph-text: #1e293b;
+      --accent-emerald: #059669;
+      --accent-blue: #0284c7;
+      --accent-coral: #f43f5e;
+      --accent-rose: #dc2626;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-primary);
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+    }
+
+    .card-header-theme {
+      background-color: var(--bg-card-header);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .nav-theme {
+      background-color: var(--bg-nav);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    input, textarea, select {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-input);
+      color: var(--text-primary);
+    }
+
+    input:focus, textarea:focus {
+      border-color: #059669;
+      outline: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    }
+
+    .btn-secondary:hover {
+      background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+    }
+  </style>
+
+  <script>
+    (function() {
+      function getThemeCookie() {
+        const match = document.cookie.match(/(?:^|; )theme=([^;]*)/);
+        return match ? decodeURIComponent(match[1]) : null;
+      }
+      const savedTheme = getThemeCookie() || (function(){ try { return localStorage.getItem('surfacewatch_theme'); } catch(e){ return null; } })() || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      const next = current === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      document.cookie = "theme=" + next + ";path=/;max-age=31536000;SameSite=Lax";
+      try { localStorage.setItem('surfacewatch_theme', next); } catch(e) {}
+      
+      updateThemeIcons(next);
+      window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: next } }));
+    }
+
+    function updateThemeIcons(theme) {
+      const sun = document.getElementById('theme-icon-sun');
+      const moon = document.getElementById('theme-icon-moon');
+      if (sun && moon) {
+        if (theme === 'light') {
+          sun.classList.remove('hidden');
+          moon.classList.add('hidden');
+        } else {
+          sun.classList.add('hidden');
+          moon.classList.remove('hidden');
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      updateThemeIcons(currentTheme);
+    });
+  </script>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <nav class="nav-theme sticky top-0 z-50 backdrop-blur bg-opacity-95 shadow-sm">
+    <div class="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-8">
+        <a href="{{ url_for('main.home') }}" class="flex items-center gap-2.5 font-bold text-lg hover:opacity-90 transition">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-500">
+            🛡️
+          </div>
+          <span class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent font-extrabold">SurfaceWatch</span>
+        </a>
+
+        {% if current_user.is_authenticated %}
+        <div class="hidden md:flex items-center gap-1">
+          <a href="{{ url_for('dashboard.index') }}" class="px-3 py-1.5 rounded-md text-sm font-medium hover:opacity-100 opacity-80 transition">Dashboard</a>
+          <a href="{{ url_for('community.chat') }}" class="px-3 py-1.5 rounded-md text-sm font-medium hover:opacity-100 opacity-80 transition">Community</a>
+          <a href="{{ url_for('blog.index') }}" class="px-3 py-1.5 rounded-md text-sm font-medium hover:opacity-100 opacity-80 transition">Blog</a>
+          <a href="{{ url_for('profile.leaderboard') }}" class="px-3 py-1.5 rounded-md text-sm font-medium hover:opacity-100 opacity-80 transition">Leaderboard</a>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Theme Toggle Button -->
+        <button type="button" onclick="toggleTheme()" class="p-2 rounded-lg border border-gray-700/40 hover:bg-gray-500/10 transition" title="Toggle Light/Dark Theme">
+          <!-- Sun Icon (shown in light mode) -->
+          <svg id="theme-icon-sun" class="w-4 h-4 text-amber-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          <!-- Moon Icon (shown in dark mode) -->
+          <svg id="theme-icon-moon" class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+        </button>
+
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('profile.view', username=current_user.username) }}" class="text-sm font-medium flex items-center gap-2 hover:opacity-90">
+            <div class="w-7 h-7 rounded-full bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-xs font-semibold text-purple-400">
+              {{ current_user.username[0]|upper }}
+            </div>
+            <span>{{ current_user.username }}</span>
+          </a>
+          <a href="{{ url_for('auth.logout') }}" class="text-xs text-rose-400 hover:text-rose-300 px-2.5 py-1 rounded border border-rose-900/50 bg-rose-950/30 hover:bg-rose-900/40 transition">Logout</a>
+        {% else %}
+          <a href="{{ url_for('blog.index') }}" class="text-sm hover:opacity-100 opacity-80">Blog</a>
+          <a href="{{ url_for('auth.login') }}" class="text-sm hover:opacity-100 opacity-80">Login</a>
+          <a href="{{ url_for('auth.register') }}" class="btn-primary text-sm text-white px-4 py-1.5 rounded-lg shadow-md font-medium">Register</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-6xl mx-auto w-full px-6 pt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="mb-4 px-4 py-3 rounded-lg text-sm flex items-center gap-2 border shadow-sm
+            {% if category == 'danger' %}bg-rose-950/40 text-rose-300 border-rose-800/60
+            {% elif category == 'success' %}bg-emerald-950/40 text-emerald-300 border-emerald-800/60
+            {% else %}bg-indigo-950/40 text-indigo-300 border-indigo-800/60{% endif %}">
+            <span>{{ message }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <main class="max-w-6xl mx-auto w-full px-6 pb-16 flex-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="border-t border-[#1e2232] py-6 text-center text-xs opacity-60 mt-auto">
+    SurfaceWatch Attack Surface Mapper & Graph Risk Scorer — Plain English Security Intelligence
+  </footer>
+
+</body>
+</html>

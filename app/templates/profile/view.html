@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ user.username }} — SurfaceWatch{% endblock %}
+{% block content %}
+<div class="mt-8 card rounded-xl p-8">
+  <h1 class="text-xl font-bold mb-1">{{ user.username }}</h1>
+  <p class="text-sm text-gray-500 mb-4">Joined {{ user.joined_at.strftime('%b %Y') }}</p>
+  <p class="text-gray-300 mb-6">{{ user.bio or "No bio yet." }}</p>
+  <div class="flex gap-6">
+    <div>
+      <div class="text-xl font-bold text-purple-400">{{ user.scan_count }}</div>
+      <div class="text-xs text-gray-500">Scans run</div>
+    </div>
+  </div>
+  {% if current_user.is_authenticated and current_user.id == user.id %}
+  <a href="{{ url_for('profile.edit') }}" class="inline-block mt-6 text-sm text-purple-400">Edit profile</a>
+  {% endif %}
+</div>
+{% endblock %}

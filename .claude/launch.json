@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "budget-guard-dashboard",
+      "runtimeExecutable": "C:\\Users\\Dell\\Projects\\budget-guard\\.venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "-c",
+        "import os; os.chdir(r'C:\\Users\\Dell\\Projects\\budget-guard'); import uvicorn; uvicorn.run('dashboard.backend.main:app', host='127.0.0.1', port=8000)"
+      ],
+      "port": 8000
+    }
+  ]
+}
