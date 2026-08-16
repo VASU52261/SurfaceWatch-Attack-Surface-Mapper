@@ -397,5 +397,5 @@ changed. Run `surfacewatch monitor` and check back tomorrow.
 
 MIT — see [LICENSE](LICENSE).
 
-Free to use, modify, sell and redistribute. If it helps you protect a small
+Free to use, modify and redistribute. If it helps you protect a small
 business, that is exactly what it is for.
